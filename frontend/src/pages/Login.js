@@ -9,18 +9,23 @@ const Login = () => {
     const navigate = useNavigate();
     useEffect(() => {
         const initClient = () => {
+            console.log(clientId);
             gapi.load("client:auth2", () => {
+                console.log(clientId);
                 gapi.client.init({
+                    
                     clientId: clientId,
-                    scope: "http://www.googleapis.com/auth/classroom.courses.readonly",
+                    scope: "https://www.googleapis.com/auth/classroom.courses.readonly",
                 });
             });
+
         };
         initClient();
     }, []);
 
     const handleLogin = () => {
         const authInstance = gapi.auth2.getAuthInstance();
+
         authInstance.signIn().then((googleUser) => {
             const token = googleUser.getAuthResponse().access_token;
             console.log("Google ID Token:", token);
