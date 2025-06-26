@@ -1,23 +1,53 @@
-import React from "react";
-import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
+import React, {useEffect} from "react";
+import { gapi } from "gapi-script";
 import { useNavigate } from "react-router-dom";
 
-export default function Login() {
-    const navigate = useNavigate();
 
-    const handleSuccess = (credentialResponse) => {
-        const token = credentialResponse.credential;
-        localStorage.setItem("token", token);
-        console.log("Login Success!", token);
-        navigate("/dashboard");
+const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+
+const Login = () => {
+    const navigate = useNavigate();
+    useEffect(() => {
+        const initClient = () => {
+            gapi.load("client:auth2", () => {
+                gapi.client.init({
+                    clientId: clientId,
+                    scope: "http://www.googleapis.com/auth/classroom.courses.readonly",
+                });
+            });
+        };
+        initClient();
+    }, []);
+
+    const handleLogin = () => {
+        const authInstance = gapi.auth2.getAuthInstance();
+        authInstance.signIn().then((googleUser) => {
+            const token = googleUser.getAuthResponse().access_token;
+            console.log("Google ID Token:", token);
+
+            fetch("http://localhost:5000/auth/google", {
+                method:"POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({token}),
+            })
+            .then((res) => res.json())
+            .then((data) => {
+                localStorage.setItem("token", token);
+                navigate("/dashboard");
+            })
+            .catch((error) => console.log("error", error));
+        
+        });
     };
     return(
-        <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
         <div>
-            <h1>Login</h1>
-            <GoogleLogin onSuccess={handleSuccess} onError={() => console.log("Login Failed")} />
+            <h2>Login with Google</h2>
+            <button onClick={handleLogin}>Sign in with Google</button>
         </div>
-        </GoogleOAuthProvider>
-    );
+    )
+
 }
+export default Login;
 
