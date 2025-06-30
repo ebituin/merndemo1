@@ -1,58 +1,31 @@
-import React, {useEffect} from "react";
-import { gapi } from "gapi-script";
+import { useGoogleLogin } from "@react-oauth/google";
 import { useNavigate } from "react-router-dom";
 
-
-const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
-
 const Login = () => {
-    const navigate = useNavigate();
-    useEffect(() => {
-        const initClient = () => {
-            console.log(clientId);
-            gapi.load("client:auth2", () => {
-                console.log(clientId);
-                gapi.client.init({
-                    
-                    clientId: clientId,
-                    scope: "https://www.googleapis.com/auth/classroom.courses.readonly",
-                });
-            });
+  const navigate = useNavigate();
 
-        };
-        initClient();
-    }, []);
+  const login = useGoogleLogin({
+    scope: "https://www.googleapis.com/auth/classroom.courses.readonly openid email profile",
+    onSuccess: async (tokenResponse) => {
+      const accessToken = tokenResponse.access_token;
 
-    const handleLogin = () => {
-        const authInstance = gapi.auth2.getAuthInstance();
+      // Optional: store access token locally
+      localStorage.setItem("token", accessToken);
 
-        authInstance.signIn().then((googleUser) => {
-            const token = googleUser.getAuthResponse().access_token;
-            console.log("Google ID Token:", token);
+      console.log("Access Token:", accessToken);
 
-            fetch("http://localhost:5000/auth/google", {
-                method:"POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({token}),
-            })
-            .then((res) => res.json())
-            .then((data) => {
-                localStorage.setItem("token", token);
-                navigate("/dashboard");
-            })
-            .catch((error) => console.log("error", error));
-        
-        });
-    };
-    return(
-        <div>
-            <h2>Login with Google</h2>
-            <button onClick={handleLogin}>Sign in with Google</button>
-        </div>
-    )
+      navigate("/dashboard");
+    },
+    onError: () => console.error("Google login failed"),
+    flow: "implicit", // or "auth-code" for server-side code exchange
+  });
 
-}
+  return (
+    <div>
+      <h2>Sign in with Google</h2>
+      <button onClick={() => login()}>Sign in & Get Access Token</button>
+    </div>
+  );
+};
+
 export default Login;
-
